@@ -4,13 +4,10 @@
 
 1. **Clone or navigate to the project directory**
    ```bash
-   git clone repo_url
+   git clone https://github.com/badalhalder99/rest-api-node.git
    ```
 
 2. ** Go to the root directory:
-
-## 🏃‍♂️ Running the Application
-
 
 **Terminal 1 - Backend Server:**
 ```bash
