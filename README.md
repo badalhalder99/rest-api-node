@@ -12,12 +12,16 @@
 **Terminal 1 - Backend Server:**
 ```bash
 cd backend
+```
+```bash
 yarn start
 ```
 
 **Terminal 2 - Frontend Development Server:**
 ```bash
 cd frontend
+```
+```bash
 yarn start
 ```
 
