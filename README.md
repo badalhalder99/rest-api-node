@@ -14,6 +14,7 @@
 cd backend
 ```
 ```bash
+yarn
 yarn start
 ```
 
@@ -22,6 +23,7 @@ yarn start
 cd frontend
 ```
 ```bash
+yarn
 yarn start
 ```
 
