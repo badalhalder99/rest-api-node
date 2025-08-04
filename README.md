@@ -47,37 +47,10 @@ yarn start
 curl http://localhost:3001/api/users
 ```
 
-**Create a new user:**
-```bash
-curl -X POST http://localhost:3001/api/users \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Alice Johnson", "email": "alice@example.com"}'
-```
 
 **Get user by ID:**
 ```bash
 curl http://localhost:3001/api/users/1
-```
-
-## 🏗️ Project Structure
-
-```
-VITAL/
-├── package.json              # Root package.json with workspaces
-├── README.md                 # This file
-├── yarn.lock                 # Yarn lock file
-├── backend/
-│   ├── package.json          # Backend dependencies
-│   └── server.js             # Raw Node.js HTTP server
-└── frontend/
-    ├── package.json          # React dependencies
-    ├── public/
-    │   └── index.html        # HTML template
-    └── src/
-        ├── index.js          # React entry point
-        ├── index.css         # Global styles
-        ├── App.js            # Main React component
-        └── App.css           # Component styles
 ```
 
 
