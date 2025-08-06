@@ -30,7 +30,7 @@ yarn start
 ## 🌐 Access the Application
 
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
+- **Backend API**: http://localhost:3002
 
 ## 📡 API Endpoints
 
@@ -44,13 +44,13 @@ yarn start
 
 **Get all users:**
 ```bash
-curl http://localhost:3001/api/users
+curl http://localhost:3002/api/users
 ```
 
 
 **Get user by ID:**
 ```bash
-curl http://localhost:3001/api/users/1
+curl http://localhost:3002/api/users/1
 ```
 
 
@@ -58,7 +58,7 @@ curl http://localhost:3001/api/users/1
 
 **Port already in use:**
 - Backend: Change `PORT` in `backend/server.js`
-- Frontend: Set `PORT=3001` environment variable before starting
+- Frontend: Set `PORT=3002` environment variable before starting
 
 **CORS errors:**
 - Ensure backend server is running

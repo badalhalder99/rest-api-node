@@ -1,242 +1,92 @@
-const http = require('http');
-const url = require('url');
-const { MongoClient, ObjectId } = require('mongodb');
+const express = require('express');
+const cors = require('cors');
+const session = require('express-session');
+const passport = require('./config/passport');
+const { connectToMongoDB } = require('./config/database');
+require('dotenv').config();
 
-const PORT = 3001;
-// const URI = "mongodb+srv://badalhalder999:Badal1234@badol-sample-database.cptx8fi.mongodb.net/";
-const URI = "mongodb://localhost:27017";
-const dbName = 'demo-database';
+// Import routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
 
-let db;
+const app = express();
+const PORT = process.env.PORT || 3002;
 
-// Connect to MongoDB
-async function connectToMongoDB() {
+// Middleware
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Set to true in production with HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Routes
+app.use('/auth', authRoutes);
+app.use('/api/users', userRoutes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ success: true, message: 'Server is running' });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    message: 'Route not found' 
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    success: false, 
+    message: 'Something went wrong!' 
+  });
+});
+
+// Initialize MongoDB connection and start server
+async function startServer() {
   try {
-    const client = new MongoClient(URI);
-    await client.connect();
-    console.log('Connected to MongoDB');
-    db = client.db(dbName);
+    await connectToMongoDB();
+    
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`Health check: http://localhost:${PORT}/health`);
+    });
   } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 }
 
-// Initialize MongoDB connection
-connectToMongoDB();
-
-const server = http.createServer(async (req, res) => {
-  const { pathname } = url.parse(req.url, true);
-  const method = req.method;
-
-  if (method === 'OPTIONS') {
-    res.writeHead(200, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    });
-    return res.end();
-  }
-
-  if (pathname === '/api/users' && method === 'GET') {
-    const collection = db.collection('user');
-    try {
-      const users = await collection.find({}).toArray();
-      res.writeHead(200, {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
-      return res.end(JSON.stringify({ success: true, data: users }));
-    } catch (error) {
-      res.writeHead(500, {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
-      return res.end(JSON.stringify({ success: false, message: 'Database error' }));
-    }
-  }
-
-  if (pathname === '/api/users' && method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk.toString());
-    req.on('end', async () => {
-      try {
-        const data = JSON.parse(body);
-        const collection = db.collection('user');
-        const newUser = { 
-          id: data.id,
-          name: data.name, 
-          email: data.email, 
-          age: parseInt(data.age), 
-          profession: data.profession, 
-          summary: data.summary 
-        };
-        const result = await collection.insertOne(newUser);
-        newUser._id = result.insertedId;
-        
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        });
-        res.end(JSON.stringify({ success: true, data: newUser }));
-      } catch (error) {
-        res.writeHead(400, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        });
-        res.end(JSON.stringify({ success: false, message: 'Invalid JSON or Database error' }));
-      }
-    });
-    return;
-  }
-
-  if (pathname.startsWith('/api/users/') && method === 'GET') {
-    try {
-      const userId = pathname.split('/')[3];
-      const collection = db.collection('user');
-      const user = await collection.findOne({ _id: new ObjectId(userId) });
-      
-      res.writeHead(200, {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
-      
-      if (user) {
-        res.end(JSON.stringify({ success: true, data: user }));
-      } else {
-        res.end(JSON.stringify({ success: false, message: 'User not found' }));
-      }
-    } catch (error) {
-      res.writeHead(500, {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
-      res.end(JSON.stringify({ success: false, message: 'Database error' }));
-    }
-    return;
-  }
-
-  // Update user
-  if (pathname.startsWith('/api/users/') && method === 'PUT') {
-    let body = '';
-    req.on('data', chunk => body += chunk.toString());
-    req.on('end', async () => {
-      try {
-        const userId = pathname.split('/')[3];
-        const data = JSON.parse(body);
-        const collection = db.collection('user');
-        
-        const updatedUser = {
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          age: parseInt(data.age),
-          profession: data.profession,
-          summary: data.summary
-        };
-
-        const result = await collection.updateOne(
-          { _id: new ObjectId(userId) },
-          { $set: updatedUser }
-        );
-
-        if (result.matchedCount > 0) {
-          updatedUser._id = new ObjectId(userId);
-          res.writeHead(200, {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-          });
-          res.end(JSON.stringify({ success: true, data: updatedUser }));
-        } else {
-          res.writeHead(404, {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-          });
-          res.end(JSON.stringify({ success: false, message: 'User not found' }));
-        }
-      } catch (error) {
-        res.writeHead(400, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        });
-        res.end(JSON.stringify({ success: false, message: 'Invalid JSON or Database error' }));
-      }
-    });
-    return;
-  }
-
-  // Delete user
-  if (pathname.startsWith('/api/users/') && method === 'DELETE') {
-    try {
-      const userId = pathname.split('/')[3];
-      const collection = db.collection('user');
-      
-      const result = await collection.deleteOne({ _id: new ObjectId(userId) });
-      
-      if (result.deletedCount > 0) {
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        });
-        res.end(JSON.stringify({ success: true, message: 'User deleted successfully' }));
-      } else {
-        res.writeHead(404, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        });
-        res.end(JSON.stringify({ success: false, message: 'User not found' }));
-      }
-    } catch (error) {
-      res.writeHead(500, {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
-      res.end(JSON.stringify({ success: false, message: 'Database error' }));
-    }
-    return;
-  }
-
-  res.writeHead(404, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  });
-  res.end(JSON.stringify({ success: false, message: 'Route not found' }));
-});
-
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
-
+// Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\nShutting down server...');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
+  process.exit(0);
 });
+
+process.on('SIGTERM', () => {
+  console.log('\nShutting down server...');
+  process.exit(0);
+});
+
+// Start the server
+startServer();
