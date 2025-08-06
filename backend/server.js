@@ -3,7 +3,8 @@ const url = require('url');
 const { MongoClient, ObjectId } = require('mongodb');
 
 const PORT = 3001;
-const URI = "mongodb+srv://badalhalder999:Badal1234@badol-sample-database.cptx8fi.mongodb.net/";
+// const URI = "mongodb+srv://badalhalder999:Badal1234@badol-sample-database.cptx8fi.mongodb.net/";
+const URI = "mongodb://localhost:27017";
 const dbName = 'demo-database';
 
 let db;
